@@ -2,11 +2,12 @@
 YOLO 格式的数据集转化为 COCO 格式的数据集
 --root_dir 输入根路径
 --save_path 保存文件的名字(没有random_split时使用)
---random_split 有则会随机划分数据集，然后再分别保存为3个文件。
+--random_split 有则会随机划分数据集,然后再分别保存为3个文件。
 --split_by_file 按照 ./train.txt ./val.txt ./test.txt 来对数据集进行划分。
 """
 
 import os
+import shutil
 import cv2
 import json
 from tqdm import tqdm
@@ -136,12 +137,24 @@ def yolo2coco(arg):
                 ann_id_cnt += 1
 
     # 保存结果
-    folder = os.path.join(root_path, 'annotations')
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    target_root=root_path + "/../coco_root"
+    folder_annotations = os.path.join(target_root, 'annotations')
+    folder_train = os.path.join(target_root, 'train')
+    folder_val = os.path.join(target_root, 'val')
+    folder_test = os.path.join(target_root, 'test')
+
+    if not os.path.exists(folder_annotations):
+        os.makedirs(folder_annotations)
+    if not os.path.exists(folder_train):
+        os.makedirs(folder_train)
+    if not os.path.exists(folder_val):
+        os.makedirs(folder_val)
+    if not os.path.exists(folder_test):
+        os.makedirs(folder_test)
+
     if arg.random_split or arg.split_by_file:
         for phase in ['train','val','test']:
-            json_name = os.path.join(root_path, 'annotations/{}.json'.format(phase))
+            json_name = os.path.join(folder_annotations, '{}.json'.format(phase))
             with open(json_name, 'w') as f:
                 if phase == 'train':
                     json.dump(train_dataset, f)
@@ -149,12 +162,39 @@ def yolo2coco(arg):
                     json.dump(val_dataset, f)
                 elif phase == 'test':
                     json.dump(test_dataset, f)
+
             print('Save annotation to {}'.format(json_name))
+
+            images = None
+            if phase == 'train':
+                images = train_dataset['images']
+            elif phase == 'val':
+                images = val_dataset['images']
+            elif phase == 'test':
+                images = test_dataset['images']
+            #保存图片
+            for img in images:
+                img_src=root_path + "/images/" + img['file_name']
+                img_target=target_root + "/" + phase + "/" + img['file_name']
+                print(img_src, ":", img_target)
+                shutil.copyfile(img_src, img_target)
+            print('Copy images to {}'.format(target_root))
+            
     else:
-        json_name = os.path.join(root_path, 'annotations/{}'.format(arg.save_path))
+        json_name = os.path.join(folder_annotations, '{}'.format(arg.save_path))
         with open(json_name, 'w') as f:
             json.dump(dataset, f)
+            #TODO: 保存文件
             print('Save annotation to {}'.format(json_name))
+
+        #保存图片
+        images = dataset['images']
+        for img in images:
+            img_src=root_path + "/images/" + img['file_name']
+            img_target=target_root + "/" + phase + "/" + img['file_name']
+            print(img_src, ":", img_target)
+            shutil.copyfile(img_src, img_target)
+        print('Copy images to {}'.format(target_root))
 
 if __name__ == "__main__":
 
