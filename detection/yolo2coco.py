@@ -72,7 +72,7 @@ def yolo2coco(arg):
             
         if arg.random_split:
             print("spliting mode: random split")
-            train_img, val_img, test_img = train_test_val_split_random(indexes,0.8,0.1,0.1)
+            train_img, val_img, test_img = train_test_val_split_random(indexes,0.8,0.19,0.01)
         elif arg.split_by_file:
             print("spliting mode: split by files")
             train_img, val_img, test_img = train_test_val_split_by_files(indexes, root_path)
