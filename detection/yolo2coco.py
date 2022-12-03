@@ -55,6 +55,8 @@ def yolo2coco(arg):
     originImagesDir = os.path.join(root_path, 'images')
     with open(os.path.join(root_path, 'classes.txt')) as f:
         classes = f.read().strip().split()
+    print("Loading classes:", classes)
+
     # images dir name
     indexes = os.listdir(originImagesDir)
 
@@ -91,12 +93,12 @@ def yolo2coco(arg):
         height, width, _ = im.shape
         if arg.random_split or arg.split_by_file:
             # 切换dataset的引用对象，从而划分数据集
-                if index in train_img:
-                    dataset = train_dataset
-                elif index in val_img:
-                    dataset = val_dataset
-                elif index in test_img:
-                    dataset = test_dataset
+            if index in train_img:
+                dataset = train_dataset
+            elif index in val_img:
+                dataset = val_dataset
+            elif index in test_img:
+                dataset = test_dataset
         # 添加图像的信息
         dataset['images'].append({'file_name': index,
                                     'id': k,
@@ -104,6 +106,7 @@ def yolo2coco(arg):
                                     'height': height})
         if not os.path.exists(os.path.join(originLabelsDir, txtFile)):
             # 如没标签，跳过，只保留图片信息。
+            print("no label file:", txtFile)
             continue
         with open(os.path.join(originLabelsDir, txtFile), 'r') as fr:
             labelList = fr.readlines()
@@ -121,7 +124,11 @@ def yolo2coco(arg):
                 x2 = (x + w / 2) * W
                 y2 = (y + h / 2) * H
                 # 标签序号从0开始计算, coco2017数据集标号混乱，不管它了。
-                cls_id = int(label[0])   
+                cls_id = int(label[0])
+                #如果classes不存在这个分类，丢弃这个不合法的数据
+                if cls_id < 0 or cls_id >= len(classes):
+                    print("cls_id not exist:", cls_id, txtFile)
+                    continue
                 width = max(0, x2 - x1)
                 height = max(0, y2 - y1)
                 dataset['annotations'].append({
@@ -176,7 +183,7 @@ def yolo2coco(arg):
             for img in images:
                 img_src=root_path + "/images/" + img['file_name']
                 img_target=target_root + "/" + phase + "/" + img['file_name']
-                print(img_src, ":", img_target)
+                # print(img_src, ":", img_target)
                 shutil.copyfile(img_src, img_target)
             print('Copy images to {}'.format(target_root))
             
@@ -192,7 +199,7 @@ def yolo2coco(arg):
         for img in images:
             img_src=root_path + "/images/" + img['file_name']
             img_target=target_root + "/" + phase + "/" + img['file_name']
-            print(img_src, ":", img_target)
+            # print(img_src, ":", img_target)
             shutil.copyfile(img_src, img_target)
         print('Copy images to {}'.format(target_root))
 
